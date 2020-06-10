@@ -1,9 +1,10 @@
 let express = require('express');
 let request = require('request');
 let bodyParser = require('body-parser');
+require('dotenv').config();
 
-let CLIENT = "AU1Ip9EcfJbX0Km6nWAsKKni2yFDA16HbeOp9WrsCpNrT9pEXNB_X7IpkhZE7itDVYcNTx2uaIY2vAUw";
-let SECRET = "EJ7yw3uBIFAXofFwxI7PRMmru3Xt70kLHI6RgIPvW9LRXl0DKKVBU82f0X6ovDFSHzO_nxRkdPTw1dGL";
+let CLIENT = process.env.CLIENT;
+let SECRET = process.env.SECRET;
 
 var PAYPAL_API = 'https://api.sandbox.paypal.com';
 
