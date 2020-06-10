@@ -1,89 +1,107 @@
-let express = require('express');
-let request = require('request');
-let bodyParser = require('body-parser');
+const express = require("express");
+const engines = require("consolidate");
+const paypal = require("paypal-rest-sdk");
 require('dotenv').config();
+const bodyParser = require('body-parser');
+const app = express();
 
-let CLIENT = process.env.CLIENT;
-let SECRET = process.env.SECRET;
+app.engine("ejs", engines.ejs);
+app.set("views", "./views");
+app.set("view engine", "ejs");
 
-var PAYPAL_API = 'https://api.sandbox.paypal.com';
+paypal.configure({
+    mode: "sandbox", //sandbox or live
+    client_id:
+        process.env.CLIENT,
+    client_secret:
+        process.env.SECRET
+});
 
-express()
-    .use(bodyParser.json())
-    .use(bodyParser.urlencoded({ extended: false }))
-    .post('/create-payment/', (req, res) => {
-        request.post(PAYPAL_API + '/v1/payments/payment',
+
+app.get("/", (req, res) => {
+    res.render("index");
+});
+
+app.get("/paypal", (req, res) => {
+    var create_payment_json = {
+        intent: "sale",
+        payer: {
+            payment_method: "paypal"
+        },
+        redirect_urls: {
+            return_url: "https://swish-paypal.herokuapp.com/success",
+            cancel_url: "https://swish-paypal.herokuapp.com/cancel"
+        },
+        transactions: [
             {
-                auth: {
-                    user: CLIENT,
-                    pass: SECRET
-                },
-                body: {
-                    intent: 'sale',
-                    payer: {
-                        payment_method: 'paypal'
-                    },
-                    transactions: [
+                item_list: {
+                    items: [
                         {
-                            amount: {
-                                total: req.body.total,
-                                currency: 'USD'
-                            }
-                        }
-                    ],
-                    redirect_urls:
-                    {
-                        return_url: 'https://example.com',
-                        cancel_url: 'https://example.com'
-                    }
-                },
-                json: true
-            }, (err, response) => {
-                if (err) {
-                    console.error(err);
-                    return res.sendStatus(500);
-                }
-                res.json({
-                    id: response.body.id,
-                    response
-                });
-            });
-    })
-    .post('/execute-payment/', (req, res) => {
-        let paymentID = req.body.payment_ID;
-        let payerID = req.body.payer_ID;
-
-        request.post(PAYPAL_API + '/v1/payments/payment/' + paymentID + '/execute',
-            {
-                auth: {
-                    user: CLIENT,
-                    pass: SECRET
-                },
-                body: {
-                    payer_id: payerID,
-                    transactions: [
-                        {
-                            amount:
-                            {
-                                total: req.body.total,
-                                currency: 'USD'
-                            }
+                            name: "item",
+                            sku: "item",
+                            price: "1.00",
+                            currency: "USD",
+                            quantity: 1
                         }
                     ]
                 },
-                json: true
-            }, (err, response) => {
-                if (err) {
-                    console.error(err)
-                    return res.sendStatus(500)
+                amount: {
+                    currency: "USD",
+                    total: "1.00"
+                },
+                description: "This is the payment description."
+            }
+        ]
+    };
+
+    paypal.payment.create(create_payment_json, function (error, payment) {
+        if (error) {
+            throw error;
+        } else {
+            console.log("Create Payment Response");
+            console.log(payment);
+            res.redirect(payment.links[1].href);
+        }
+    });
+});
+
+app.get("/success", (req, res) => {
+    var PayerID = req.query.PayerID;
+    var paymentId = req.query.paymentId;
+    var execute_payment_json = {
+        payer_id: PayerID,
+        transactions: [
+            {
+                amount: {
+                    currency: "USD",
+                    total: "1.00"
                 }
-                res.json(
-                    {
-                        status: 'success',
-                        response
-                    }
-                )
-            })
-    }).listen(process.env.PORT || 3000, () => {
-        console.log('Server listening at http://localhost:3000/')
-    })
+            }
+        ]
+    };
+
+    paypal.payment.execute(paymentId, execute_payment_json, function (
+        error,
+        payment
+    ) {
+        if (error) {
+            console.log(error.response);
+            throw error;
+        } else {
+            console.log("Get Payment Response");
+            console.log(JSON.stringify(payment));
+            res.render("success");
+        }
+    });
+});
+
+app.get("cancel", (req, res) => {
+    res.render("cancel");
+});
+
+app.listen(process.env.PORT, () => {
+    console.log("Server is running");
+});
+
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: false }))
