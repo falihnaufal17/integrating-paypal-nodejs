@@ -43,7 +43,8 @@ express()
                     return res.sendStatus(500);
                 }
                 res.json({
-                    id: response.body.id
+                    id: response.body.id,
+                    response
                 });
             });
     })
@@ -77,7 +78,8 @@ express()
                 }
                 res.json(
                     {
-                        status: 'success'
+                        status: 'success',
+                        response
                     }
                 )
             })
