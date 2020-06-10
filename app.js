@@ -28,8 +28,8 @@ app.get("/paypal", (req, res) => {
             payment_method: "paypal"
         },
         redirect_urls: {
-            return_url: "http://localhost:3000/success",
-            cancel_url: "http://localhost:3000/cancel"
+            return_url: "https://swish-paypal.herokuapp.com/success",
+            cancel_url: "https://swish-paypal.herokuapp.com/cancel"
         },
         transactions: [
             {
